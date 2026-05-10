@@ -59,6 +59,21 @@ pnpm install --silent
 # artifacts (logs/, .prompt-*.txt, .system-prompt-*.txt) here.
 export AGENTS_REPO_PATH="$AGENTS_DIR"
 
+# Export TARGET_REPO_PATH so dispatch.ts's module-level `repoRoot`
+# resolves correctly. The v1 dispatcher reads this env var BEFORE
+# `dotenv.config()` runs (the const is computed on line 63, dotenv
+# is loaded on line 81 — load order bug). The bug stays latent in
+# pyrycode/agents because the fallback walks up to the parent dir
+# and conveniently lands on pyrycode/ (the Go daemon repo). Forks
+# with a flat layout (e.g. agent-dispatcher-v2-agents next to
+# agent-dispatcher-v2 under WorkSpace/Projects/) walk up to a
+# non-git-repo parent and every git operation fails. Exporting here
+# guarantees process.env has it at module load. Upstream fix would
+# move config() before the const declarations in dispatch.ts.
+if [ -z "$TARGET_REPO_PATH" ] && [ -n "$RESOLVED_TARGET" ]; then
+  export TARGET_REPO_PATH="$RESOLVED_TARGET"
+fi
+
 # Spawn dispatcher in background so we can capture the actual PID for
 # the lock and clean up on shell exit. `exec` would replace the shell
 # and lose the EXIT trap; we keep the shell alive as a thin lock-holder
