@@ -49,12 +49,16 @@ If the system design changed:
 
 ## Always Update
 
-1. **`docs/knowledge/codebase/<ticket-number>.md`** — write a NEW per-ticket file with the implementation summary (the bullets that historically went into `PROJECT-MEMORY.md`'s "What's Built" section). One file per ticket; never edit a sibling ticket's file. **Do NOT prepend or append to `PROJECT-MEMORY.md`'s "What's Built" section** — the directory listing of `docs/knowledge/codebase/` IS the index. See `docs/knowledge/codebase/README.md` for the convention. (Pre-2026-05-10 blocks in `PROJECT-MEMORY.md` are frozen history; leave them alone.)
+1. **`docs/knowledge/codebase/<ticket-number>.md`** — write a NEW per-ticket file with the implementation summary AND any patterns established by this ticket. One file per ticket; never edit a sibling ticket's file. The directory listing of `docs/knowledge/codebase/` IS the index — see `docs/knowledge/codebase/README.md` for what belongs in a ticket file (implementation, key files, patterns, anything a future session would need).
 2. **`docs/knowledge/INDEX.md`** — add one-line summary for any new feature/decision/architecture doc
-3. **`docs/PROJECT-MEMORY.md`** — update "Patterns Established" or other sibling sections if applicable. Leave "What's Built" alone (per item 1).
-4. **`docs/lessons.md`** — add any gotchas discovered during the ticket
+3. **`docs/lessons.md`** — add any gotchas discovered during the ticket
 
-The per-ticket-file convention exists because parallel docs agents writing to the same `PROJECT-MEMORY.md` "What's Built" line caused recurring merge conflicts (incidents on 2026-05-09 and 2026-05-10; 5+ stuck PRs). Per-ticket files eliminate the hot line entirely — two concurrent docs runs never touch the same file.
+## Never Update
+
+- **`docs/PROJECT-MEMORY.md`** — read-only for agents. It records human-maintained project conventions; per-ticket content has its own home under `codebase/<N>.md`. Appending here caused stranded PRs on 2026-05-09, 2026-05-10, and 2026-05-11; the "Patterns established" section was dropped 2026-05-11. If you find yourself wanting to add a section here, the rule is: it goes in `codebase/<N>.md` instead.
+- **Pre-2026-05-10 frozen blocks** anywhere in the repo — historical content. Don't touch.
+
+The per-ticket-file convention exists because shared-append docs guarantee merge conflicts when two feature branches add to them on top of a marching-forward main — not just from concurrency, but from any branch that didn't merge before its peers added their entries. Per-ticket files eliminate the hot line entirely.
 
 ## Constraints
 

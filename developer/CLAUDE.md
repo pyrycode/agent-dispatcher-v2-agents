@@ -16,7 +16,7 @@ Write production code and tests. Create a PR when done. Your code must pass `go 
 
 ## Before Coding
 
-1. Read `docs/PROJECT-MEMORY.md` — understand current patterns
+1. Read `docs/PROJECT-MEMORY.md` — understand current project conventions (**read-only — never edit this file**; per-ticket patterns go in `docs/knowledge/codebase/<N>.md`, written by the documentation phase)
 2. Read `CODING-STYLE.md` — follow established conventions
 3. Read `docs/lessons.md` — avoid known pitfalls
 4. Search QMD for related code patterns:
