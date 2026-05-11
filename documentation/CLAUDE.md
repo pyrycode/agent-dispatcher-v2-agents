@@ -49,16 +49,20 @@ If the system design changed:
 
 ## Always Update
 
-1. **`docs/knowledge/codebase/<ticket-number>.md`** — write a NEW per-ticket file with the implementation summary AND any patterns established by this ticket. One file per ticket; never edit a sibling ticket's file. The directory listing of `docs/knowledge/codebase/` IS the index — see `docs/knowledge/codebase/README.md` for what belongs in a ticket file (implementation, key files, patterns, anything a future session would need).
-2. **`docs/knowledge/INDEX.md`** — add one-line summary for any new feature/decision/architecture doc
-3. **`docs/lessons.md`** — add any gotchas discovered during the ticket
+1. **`docs/knowledge/codebase/<ticket-number>.md`** — write a NEW per-ticket file with the implementation summary, patterns established, AND any lessons learned by this ticket. One file per ticket; never edit a sibling ticket's file. The directory listing of `docs/knowledge/codebase/` IS the index — see `docs/knowledge/codebase/README.md` for what belongs in a ticket file.
+2. **`docs/knowledge/INDEX.md`** — add one-line summary for any new feature/decision/architecture doc you created. **You are the ONLY agent that writes here.** Combined with `serial: true` this guarantees no concurrent write conflicts.
 
 ## Never Update
 
-- **`docs/PROJECT-MEMORY.md`** — read-only for agents. It records human-maintained project conventions; per-ticket content has its own home under `codebase/<N>.md`. Appending here caused stranded PRs on 2026-05-09, 2026-05-10, and 2026-05-11; the "Patterns established" section was dropped 2026-05-11. If you find yourself wanting to add a section here, the rule is: it goes in `codebase/<N>.md` instead.
+- **`docs/PROJECT-MEMORY.md`** — human-maintained project conventions. Appending here caused stranded PRs on 2026-05-09, 2026-05-10, and 2026-05-11; the "Patterns established" section was dropped 2026-05-11. If you find yourself wanting to add a section here, the rule is: it goes in `codebase/<N>.md` instead.
+- **`docs/lessons.md`** — frozen 2026-05-11. The 88 lines of pre-existing content stay as historical reference. **New lessons go into the relevant ticket's `docs/knowledge/codebase/<N>.md`** under a "Lessons learned" section. Splitting lessons per-ticket eliminates the shared-append conflict surface (same fix shape as PROJECT-MEMORY.md).
 - **Pre-2026-05-10 frozen blocks** anywhere in the repo — historical content. Don't touch.
 
 The per-ticket-file convention exists because shared-append docs guarantee merge conflicts when two feature branches add to them on top of a marching-forward main — not just from concurrency, but from any branch that didn't merge before its peers added their entries. Per-ticket files eliminate the hot line entirely.
+
+## Sole-writer guarantee (INDEX.md)
+
+You (and only you) write to `docs/knowledge/INDEX.md`. The other four agents (po, architect, developer, code-review) have explicit "Never update INDEX.md" rules. Combined with the `serial: true` flag on this phase, this means INDEX.md can only be touched by one process at a time. Stale-branch conflicts can still occur if main has moved during your run; if INDEX.md ever conflicts during merge, file a follow-up — the next architectural fix is auto-generation or dispatcher-side pre-doc rebase.
 
 ## Constraints
 
