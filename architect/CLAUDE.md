@@ -60,7 +60,7 @@ Your run has two phases: **size check** (cheap, always first) and **spec writing
 
 ### 1. Size check (always first)
 
-Read the ticket body, skim the relevant code surface (`cmd/pyry`, the affected packages), and sketch the design **mentally** — don't write it yet. Estimate the production-code line count the developer will produce (tests scale linearly; size by what gets written, not what review sees).
+Read the ticket body, skim the relevant code surface (`src/dispatch-bin.ts`, the affected modules under `src/`), and sketch the design **mentally** — don't write it yet. Estimate the production-code line count the developer will produce (tests scale linearly; size by what gets written, not what review sees).
 
 **Edit fan-out check (refactor-shaped work).** Production-line count is a proxy for the developer's turn budget (~50 turns, each Edit ≈ 1 turn). It works for greenfield work but undercounts refactors where the developer edits many call sites in cascade. Before committing to a size, identify whether the work is refactor-shaped:
 
@@ -77,7 +77,7 @@ mcp__codegraph__codegraph_impact(symbol: "<symbol>")
 Grep fallback (only when codegraph returns no results, e.g. for very fresh symbols not yet re-indexed):
 
 ```bash
-grep -rn <symbol> internal/ cmd/
+grep -rn <symbol> src/ test/
 ```
 
 Sizing rule with edit fan-out:
@@ -137,7 +137,7 @@ After the size check passes, before writing the spec, identify which files your 
 
 ```bash
 # Files your design will touch (from the sketch — you have these in your head)
-FILES=("internal/sessions/pool.go" "internal/sessions/pool_test.go" "cmd/pyry/main.go")
+FILES=("src/pipeline/transitions.ts" "test/pipeline/transitions.test.ts" "src/dispatch-bin.ts")
 
 # Refresh remote-tracking branches so we see in-flight work pushed by
 # concurrent agent runs that haven't opened a PR yet (the WIP=N gap:
@@ -187,16 +187,16 @@ Write the architecture spec to `docs/specs/architecture/{ticket}-{name}.md`.
 
 Each spec should include:
 - **Files to read first** — explicit reading list with paths, line ranges, and a one-line "what to extract" per entry. **Generate this from `codegraph_context`** at the start of your spec run, then prune/expand based on your design decisions. Required for every spec, not optional. Example:
-  - `internal/sessions/pool.go:371-415` — `RotateID` semantics + error contract
-  - `internal/sessions/rotation/watcher.go:140-180` — exact-match probe check the test must satisfy
-  - `internal/e2e/restart_test.go` — reuse `newRegistryHome` / `readRegistry` helpers
-  - `internal/e2e/harness.go:220-260` — `Start` / `StartIn` patterns the new constructor mirrors
-  - `docs/lessons.md` § "Claude session storage on disk" — encoded-cwd rule (`/` AND `.` → `-`)
+  - `src/pipeline/transitions.ts:120-160` — transition table semantics + label-delta contract
+  - `src/github/issues.ts:48-92` — `getIssue` shape the new caller must satisfy
+  - `test/pipeline/transitions.test.ts` — reuse `makeFakeIssue` / `assertLabels` helpers
+  - `src/loop/dispatch.ts:200-260` — dispatch-loop seams the new gate mirrors
+  - `docs/lessons.md` § "Label cleanup ordering" — the predicate-audit rule for new artifact variants
 
   This is the developer's turn-1 data load. Without it, exploration costs 20–30 turns of greps the architect could have prevented. Pyrycode #55 burned 84% of its 50-turn budget rediscovering files cited in this spec's prose. **`codegraph_context "<ticket title + AC paraphrase>"`** returns this set in one structured query — entry points + related symbols across files with line refs. Lift the relevant entries into the spec, prune the off-topic ones, add any docs/lessons references codegraph won't know about (it parses code, not markdown). **Same upstream-push pattern as the size check itself** — when the upstream agent has the same information, push the responsibility upstream rather than create artificial chokepoints downstream.
 - **Context** — what problem this solves, why now
 - **Design** — package structure, key types/interfaces, data flow diagrams
-- **Concurrency model** — which goroutines, how they communicate, shutdown sequence
+- **Concurrency model** — which async tasks run, how they coordinate (`AbortSignal`, Promise.all/allSettled), shutdown sequence
 - **Error handling** — failure modes and recovery strategies
 - **Testing strategy** — how to verify the design works
 - **Open questions** — things that need resolution during implementation
@@ -230,8 +230,8 @@ The dispatcher pushes your branch automatically after your run completes — you
 
 ## Constraints
 
-- **Define interfaces, not implementations.** Specify the contract (`Start(ctx) error`), not the body.
-- **Stay within Go idioms.** No patterns imported from other languages without justification.
+- **Define interfaces, not implementations.** Specify the contract (`start(signal: AbortSignal): Promise<void>`), not the body.
+- **Stay within TypeScript idioms.** No patterns imported from other languages without justification.
 - **Respect existing patterns.** New code should feel like it belongs in the codebase. Read the existing code first.
 
 ## Why size before spec
@@ -240,9 +240,9 @@ Specs cost real tokens. If the work splits, the parent's spec gets thrown away �
 
 The developer agent runs with a turn budget (~50 turns). Tickets that cross packages or have edit fan-out have historically hit that budget (KitchenClaw #72/#73; Pyrycode #29 and #40). Architect-driven splitting is informed where PO-driven splitting is a guess — but only because you've sketched the seams, not because you wrote the full spec. The sketch is the work; the spec is the artifact.
 
-## Go Architecture Patterns
+## TypeScript Architecture Patterns
 
-- **Package-level design** — one package per concern, internal visibility by default
-- **Interface contracts** — small interfaces (1-2 methods), defined at the consumer
-- **Concurrency** — goroutines coordinated via context + channels, `errgroup` for fan-out
-- **Dependency injection** — via constructor arguments (Config struct pattern), not frameworks
+- **Module-level design** — one concern per file, ≤200 lines (see this repo's CLAUDE.md hardcap); pure functions in `src/pipeline/`, I/O at the edges (`src/github/`, `src/claude/`, etc.)
+- **Interface contracts** — small interfaces (1–2 methods), defined at the consumer; prefer structural types and `import type` for cross-file shapes
+- **Concurrency** — async functions coordinated via `AbortSignal` + Promises; `Promise.all` / `Promise.allSettled` for fan-out; no orphaned timers or floating promises
+- **Dependency injection** — via constructor arguments or factory parameters (config-object pattern), not frameworks
