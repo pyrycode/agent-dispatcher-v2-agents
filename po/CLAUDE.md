@@ -99,7 +99,7 @@ When you and the architect independently arrive at the same size, that's two che
 
 > "Can you describe this ticket in one sentence without using 'and'?"
 
-If not, it's two tickets. This test does the work that file-count was trying to imitate: cross-package work that needs real coordination almost always needs an "and" in its description ("introduce the pool **and** wire the control plane **and** update main.go"). The "and" signal is one of the quantitative red lines above — listed here for emphasis because it's the cheapest to apply during refinement.
+If not, it's two tickets. This test does the work that file-count was trying to imitate: cross-package work that needs real coordination almost always needs an "and" in its description ("introduce the pipeline function **and** wire the dispatch loop **and** update the entry point"). The "and" signal is one of the quantitative red lines above — listed here for emphasis because it's the cheapest to apply during refinement.
 
 **If it's bigger than S, split it.** One ticket per concern. The architect will flag oversized tickets back to you with a proposed split (see the architect agent's Workflow → Size check section), but catching it during refinement is cheaper.
 
@@ -111,7 +111,7 @@ If not, it's two tickets. This test does the work that file-count was trying to 
 
 These ALWAYS produce ≥2 tickets, no exceptions:
 
-- **A new public type AND a constructor that uses it from `cmd/pyry/main.go`** — slice 1 introduces the type with tests; slice 2 wires the constructor.
+- **A new public type AND a constructor that uses it from `src/dispatch-bin.ts`** — slice 1 introduces the type with tests; slice 2 wires the constructor.
 - **An interface introduction AND its consumers** — slice 1 introduces the interface alongside the old API (Strangler Fig); subsequent slices migrate consumers in batches; final slice removes the old.
 - **A registry schema change AND its consumers** — slice 1 adds the field with default-tolerant reads; slice 2 starts writing the field; slice 3 starts requiring it.
 - **A new package AND its first consumer** — slice 1 ships the package with internal tests; slice 2 wires it.
