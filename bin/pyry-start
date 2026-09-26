@@ -11,6 +11,13 @@ set -e
 SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
 AGENTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Use only the dedicated Automation service account, never a desktop login.
+AUTOMATION_ACCESS="${PYRY_AUTOMATION_ACCESS:-$HOME/.local/bin/automation-access}"
+if [ ! -x "$AUTOMATION_ACCESS" ]; then
+  echo "error: service-account helper missing at $AUTOMATION_ACCESS" >&2
+  exit 1
+fi
+
 if [ ! -d "$AGENTS_DIR/dispatcher" ]; then
   echo "error: dispatcher submodule missing at $AGENTS_DIR/dispatcher" >&2
   echo "       run: cd $AGENTS_DIR && git submodule update --init" >&2
@@ -73,7 +80,9 @@ export TARGET_REPO_PATH="$RESOLVED_TARGET"
 # the lock and clean up on shell exit. `exec` would replace the shell
 # and lose the EXIT trap; we keep the shell alive as a thin lock-holder
 # wrapping the long-lived dispatcher process.
-pnpm start "$@" &
+"$AUTOMATION_ACCESS" op run --env-file="$AGENTS_DIR/.env" -- \
+  /usr/bin/perl -e 'delete $ENV{OP_SERVICE_ACCOUNT_TOKEN}; exec @ARGV or die "exec: $!\n";' -- \
+  pnpm start "$@" &
 PNPM_PID=$!
 
 # Find the actual dispatcher node process. pnpm spawns node-running-tsx;
@@ -95,6 +104,12 @@ while [ $i -lt 30 ]; do
     fi
   done
   [ -n "$DISPATCHER_PID" ] && break
+  # Preserve authentication failures before a dispatcher exists.
+  if ! kill -0 "$PNPM_PID" 2>/dev/null; then
+    STATUS=0
+    wait "$PNPM_PID" || STATUS=$?
+    exit "$STATUS"
+  fi
   sleep 0.1
   i=$((i + 1))
 done
@@ -132,6 +147,7 @@ EOF
 # pattern has a theoretical PID-reuse hazard (reaped PID gets reused
 # by another same-user process within microseconds → kill -0 returns
 # 0, wait returns 127, `|| true` swallows it, tight infinite loop).
-# `2>/dev/null || true` swallows the rare 127-from-not-our-child case
-# that could arise if a stray HUP/USR1 ever lands and a handler runs.
-wait "$PNPM_PID" 2>/dev/null || true
+# Preserve authentication and dispatcher failures for the caller.
+STATUS=0
+wait "$PNPM_PID" || STATUS=$?
+exit "$STATUS"
